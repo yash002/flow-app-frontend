@@ -10,11 +10,38 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Node } from 'reactflow';
 
+interface NodeConfig {
+    inputType?: string;
+    defaultValue?: string;
+    required?: boolean;
+    placeholder?: string;
+    helpText?: string;
+    processType?: string;
+    logic?: string;
+    critical?: boolean;
+    timeout?: string;
+    enableRetry?: boolean;
+    maxRetries?: string;
+    outputFormat?: string;
+    fileName?: string;
+    emailTemplate?: string;
+    emailSubject?: string;
+    webhookUrl?: string;
+    httpMethod?: string;
+    includeTimestamp?: boolean;
+    condition?: string;
+    trueBranch?: string;
+    falseBranch?: string;
+    operatorType?: string;
+    description?: string;
+    [key: string]: unknown; // Allow additional properties
+}
+
 interface ConfigurationModalProps {
     node: Node;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (config: any) => void;
+    onSave: (config: NodeConfig) => void; // **FIX 1: Use NodeConfig instead of 'any'**
 }
 
 const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
@@ -23,7 +50,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     onClose,
     onSave,
 }) => {
-    const [config, setConfig] = useState(node.data.config || {});
+    const [config, setConfig] = useState<NodeConfig>(node.data.config || {});
     const [nodeLabel, setNodeLabel] = useState(node.data.label || '');
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -79,7 +106,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                     newErrors.outputFormat = 'Output format is required';
                 }
                 const fileFormats = ['csv', 'json', 'xml'];
-                if (fileFormats.includes(config.outputFormat) && !config.fileName) {
+                if (fileFormats.includes(config.outputFormat || '') && !config.fileName) {
                     newErrors.fileName = 'File name is required for file outputs';
                 }
                 break;
@@ -226,7 +253,7 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                             onChange={(value) => setConfig({ ...config, outputFormat: value })}
                             error={errors.outputFormat}
                         />
-                        {['csv', 'json', 'xml'].includes(config.outputFormat) && (
+                        {['csv', 'json', 'xml'].includes(config.outputFormat || '') && (
                             <TextField
                                 label="File Name *"
                                 value={config.fileName || ''}
@@ -339,8 +366,8 @@ const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                         value={JSON.stringify(config, null, 2)}
                         onChange={(value) => {
                             try {
-                                setConfig(JSON.parse(value));
-                            } catch (e) {
+                                setConfig(JSON.parse(value) as NodeConfig);
+                            } catch {
                                 // Invalid JSON, keep as string for now
                             }
                         }}

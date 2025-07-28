@@ -2,12 +2,37 @@
 import React, { createContext, ReactNode, useCallback, useContext, useEffect, useReducer } from 'react';
 import { workflowAPI } from '../services/api';
 
+interface WorkflowComponent {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: {
+        label: string;
+        type: string;
+        config?: Record<string, unknown>;
+    };
+    style?: Record<string, unknown>;
+}
+
+interface WorkflowConnection {
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+}
+
+interface ValidationWorkflow {
+    components: WorkflowComponent[];
+    connections: WorkflowConnection[];
+}
+
 interface Workflow {
     id?: string;
     name: string;
     description?: string;
-    components: any[];
-    connections: any[];
+    components: WorkflowComponent[];
+    connections: WorkflowConnection[];
     configurations: object;
     createdAt?: string;
     updatedAt?: string;
@@ -26,7 +51,7 @@ interface WorkflowContextType extends WorkflowState {
     updateWorkflow: (id: string, workflow: Partial<Workflow>) => Promise<void>;
     deleteWorkflow: (id: string) => Promise<void>;
     setCurrentWorkflow: (workflow: Workflow | null) => void;
-    validateWorkflow: (workflow: any) => Promise<{ valid: boolean; errors: string[] }>;
+    validateWorkflow: (workflow: ValidationWorkflow) => Promise<{ valid: boolean; errors: string[] }>;
     clearError: () => void;
     clearAllData: () => void;
 }
@@ -108,8 +133,6 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
         error: null,
     });
 
-
-
     useEffect(() => {
         const handleAuthLogout = () => {
             console.log('Auth logout detected, clearing workflow data');
@@ -144,8 +167,9 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
             console.log('WorkflowContext: Initial Loaded workflows:', workflows);
 
             dispatch({ type: 'SET_WORKFLOWS', payload: workflows });
-        } catch (error: any) {
-            dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to load workflows' });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load workflows';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
         }
     }, []);
 
@@ -163,9 +187,10 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
             console.log('WorkflowContext: New workflow set as current');
 
             return created;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('WorkflowContext: Error creating workflow:', error);
-            dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to create workflow' });
+            const errorMessage = error instanceof Error ? error.message : 'Failed to create workflow';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
             throw error;
         }
     }, []);
@@ -178,8 +203,9 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
             const updated = await workflowAPI.update(id, workflow);
             console.log('WorkflowContext: Workflow updated:', updated);
             dispatch({ type: 'UPDATE_WORKFLOW', payload: updated });
-        } catch (error: any) {
-            dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to update workflow' });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to update workflow';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
             throw error;
         }
     }, []);
@@ -189,8 +215,9 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
         try {
             await workflowAPI.delete(id);
             dispatch({ type: 'DELETE_WORKFLOW', payload: id });
-        } catch (error: any) {
-            dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to delete workflow' });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to delete workflow';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
             throw error;
         }
     }, []);
@@ -199,7 +226,7 @@ export const WorkflowProvider: React.FC<{ children: ReactNode }> = ({ children }
         dispatch({ type: 'SET_CURRENT_WORKFLOW', payload: workflow });
     }, []);
 
-    const validateWorkflow = useCallback(async (workflow: any) => {
+    const validateWorkflow = useCallback(async (workflow: ValidationWorkflow) => {
         try {
             return await workflowAPI.validate(workflow);
         } catch (error) {

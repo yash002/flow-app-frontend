@@ -7,6 +7,7 @@ import ReactFlow, {
     BackgroundVariant,
     Connection,
     Controls,
+    Edge,
     MiniMap,
     Node,
     Panel,
@@ -17,6 +18,27 @@ import 'reactflow/dist/style.css';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import ConfigurationModal from './ConfigurationModal';
 import CustomNode from './CustomNode';
+
+interface WorkflowComponent {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: {
+        label: string;
+        type: string;
+        config?: Record<string, unknown>;
+    };
+    style?: Record<string, unknown>;
+}
+
+interface WorkflowConnection {
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+}
+
 const nodeTypes = {
     customNode: CustomNode,
 };
@@ -36,6 +58,30 @@ const FlowCanvas: React.FC = () => {
     const [showConfig, setShowConfig] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
     const [validationResult, setValidationResult] = useState<{ valid: boolean; errors: string[] } | null>(null);
+
+    const convertNodesToComponents = (nodes: Node[]): WorkflowComponent[] => {
+        return nodes.map(node => ({
+            id: node.id,
+            type: node.type || 'customNode',
+            position: node.position,
+            data: {
+                label: node.data?.label || '',
+                type: node.data?.type || '',
+                config: node.data?.config || {},
+            },
+            style: node.style ? { ...node.style } as Record<string, unknown> : {}, // FIX: Convert CSSProperties to Record
+        }));
+    };
+
+    const convertEdgesToConnections = (edges: Edge[]): WorkflowConnection[] => {
+        return edges.map(edge => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            sourceHandle: edge.sourceHandle || undefined,
+            targetHandle: edge.targetHandle || undefined,
+        }));
+    };
 
     useEffect(() => {
         console.log('FlowCanvas: currentWorkflow changed:', currentWorkflow?.name);
@@ -94,19 +140,22 @@ const FlowCanvas: React.FC = () => {
     console.log('FlowCanvas current canvas', currentWorkflow);
 
     const handleManualSave = async () => {
-        console.log("ManuL SAVE TRIGGERED");
+        console.log("Manual SAVE TRIGGERED");
 
         if (currentWorkflow) {
             try {
                 await updateWorkflow(currentWorkflow.id!, {
-                    components: nodes,
-                    connections: edges,
+                    components: convertNodesToComponents(nodes),
+                    connections: convertEdgesToConnections(edges),
                 });
-            } catch (error) {
+                console.log('Workflow saved successfully');
+            } catch {
+                console.error('Error saving workflow');
             }
         }
     };
 
+    // FIXED: Convert nodes/edges for validation
     const handleValidate = async () => {
         if (!currentWorkflow) {
             return;
@@ -116,8 +165,8 @@ const FlowCanvas: React.FC = () => {
             setValidationResult(null);
 
             const result = await validateWorkflow({
-                components: nodes,
-                connections: edges,
+                components: convertNodesToComponents(nodes),
+                connections: convertEdgesToConnections(edges),
             });
 
             setValidationResult(result);
@@ -125,12 +174,14 @@ const FlowCanvas: React.FC = () => {
 
             console.log('Validation result:', result);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Validation error:', error);
+
+            const errorMessage = error instanceof Error ? error.message : 'Validation request failed';
 
             setValidationResult({
                 valid: false,
-                errors: [error.message || 'Validation request failed']
+                errors: [errorMessage]
             });
             setShowValidation(true);
         }
@@ -139,8 +190,8 @@ const FlowCanvas: React.FC = () => {
     const handleExport = () => {
         const workflowData = {
             name: currentWorkflow?.name,
-            components: nodes,
-            connections: edges,
+            components: convertNodesToComponents(nodes),
+            connections: convertEdgesToConnections(edges),
             configurations: currentWorkflow?.configurations,
         };
 
@@ -373,24 +424,32 @@ const FlowCanvas: React.FC = () => {
                                 padding: '16px',
                                 marginBottom: '20px'
                             }}>
-                                <p style={{ color: '#127326ff', margin: 0 }}>
+                                <p style={{ color: '#059669', margin: 0 }}>
                                     ✅ Workflow is valid and ready to use!
                                 </p>
                             </div>
                         ) : (
                             <div style={{
-                                backgroundColor: 'rgba(144, 18, 18, 0.1)',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
                                 border: '1px solid rgba(239, 68, 68, 0.3)',
                                 borderRadius: '8px',
                                 padding: '16px',
                                 marginBottom: '20px'
                             }}>
-                                <p style={{ color: '#b52828ff', margin: '0 0 12px 0' }}>
-                                    ❌ Workflow has validation errors:
+                                <p style={{ color: '#dc2626', margin: '0 0 12px 0' }}>
+                                    {validationResult.errors.filter(e => !e.startsWith('⚠️')).length === 0
+                                        ? '✅ Workflow is valid!'
+                                        : '❌ Workflow has validation errors:'
+                                    }
                                 </p>
-                                <ul style={{ color: '#b52828ff', margin: 0, paddingLeft: '20px' }}>
+                                <ul style={{ color: '#374151', margin: 0, paddingLeft: '20px' }}>
                                     {validationResult.errors.map((error, index) => (
-                                        <li key={index} style={{ marginBottom: '4px' }}>{error}</li>
+                                        <li key={index} style={{
+                                            marginBottom: '4px',
+                                            color: error.startsWith('⚠️') ? '#f59e0b' : '#dc2626'
+                                        }}>
+                                            {error}
+                                        </li>
                                     ))}
                                 </ul>
                             </div>

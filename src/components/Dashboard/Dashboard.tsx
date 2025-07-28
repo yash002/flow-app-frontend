@@ -1,10 +1,42 @@
 // src/components/Dashboard/Dashboard.tsx
 'use client'
 import { LogOutIcon, PlayIcon, PlusIcon, TrashIcon } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react'; // Add useCallback
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkflow } from '../../contexts/WorkflowContext';
 import FlowCanvas from './FlowCanvas';
+
+interface WorkflowComponent {
+    id: string;
+    type: string;
+    position: { x: number; y: number };
+    data: {
+        label: string;
+        type: string;
+        config?: Record<string, unknown>;
+    };
+    style?: Record<string, unknown>;
+}
+
+interface WorkflowConnection {
+    id: string;
+    source: string;
+    target: string;
+    sourceHandle?: string;
+    targetHandle?: string;
+}
+
+// Use proper types instead of any
+interface Workflow {
+    id?: string;
+    name: string;
+    description?: string;
+    components: WorkflowComponent[];
+    connections: WorkflowConnection[];
+    configurations: object;
+    createdAt?: string;
+    updatedAt?: string;
+}
 
 const Dashboard: React.FC = () => {
     const { user, logout } = useAuth();
@@ -99,7 +131,7 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const handleWorkflowSelect = useCallback((workflow: any) => {
+    const handleWorkflowSelect = useCallback((workflow: Workflow) => {
         console.log('Selecting workflow:', workflow.name, workflow.id);
         setCurrentWorkflow(workflow);
     }, [setCurrentWorkflow]);

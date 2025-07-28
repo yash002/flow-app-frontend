@@ -33,8 +33,7 @@ const Register: React.FC = () => {
         try {
             await register(email, password);
             router.push('/dashboard');
-        } catch (err) {
-            // Error is handled by context
+        } catch {
         }
     }, [email, password, confirmPassword, register, router, clearError]);
 

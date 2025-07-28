@@ -46,12 +46,37 @@ interface RegisterResponse {
   };
 }
 
+interface WorkflowComponent {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: {
+    label: string;
+    type: string;
+    config?: Record<string, unknown>;
+  };
+  style?: Record<string, unknown>;
+}
+
+interface WorkflowConnection {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+interface ValidationWorkflow {
+  components: WorkflowComponent[];
+  connections: WorkflowConnection[];
+}
+
 interface Workflow {
   id?: string;
   name: string;
   description?: string;
-  components: any[];
-  connections: any[];
+  components: WorkflowComponent[]; 
+  connections: WorkflowConnection[]; 
   configurations: object;
   createdAt?: string;
   updatedAt?: string;
@@ -67,7 +92,6 @@ interface User {
   email: string;
   role: string;
 }
-
 
 export const authAPI = {
   login: (email: string, password: string): Promise<LoginResponse> =>
@@ -86,7 +110,6 @@ export const authAPI = {
     apiService.request('/auth/verify', {
       method: 'GET',
     }),
-
 };
 
 export const workflowAPI = {
@@ -103,7 +126,7 @@ export const workflowAPI = {
   delete: (id: string): Promise<void> => apiService.request(`/workflows/${id}`, {
     method: 'DELETE',
   }),
-  validate: (workflow: { components: any[]; connections: any[] }): Promise<ValidationResponse> => apiService.request('/workflows/validate', {
+  validate: (workflow: ValidationWorkflow): Promise<ValidationResponse> => apiService.request('/workflows/validate', {
     method: 'POST',
     body: JSON.stringify(workflow),
   }),

@@ -99,8 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dispatch({ type: 'SET_USER', payload: response.user });
 
             window.dispatchEvent(new CustomEvent('auth:login', { detail: response.user }));
-        } catch (error: any) {
-            dispatch({ type: 'SET_ERROR', payload: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Login failed';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
             throw error;
         }
     }, []);
@@ -115,14 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             dispatch({ type: 'SET_USER', payload: response.user });
 
             window.dispatchEvent(new CustomEvent('auth:register', { detail: response.user }));
-        } catch (error: any) {
-            dispatch({ type: 'SET_ERROR', payload: error.message });
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
             throw error;
         }
     }, []);
 
     const logout = useCallback(() => {
-        localStorage.removeItem('token');
+        localStorage.removeToken('token');
         dispatch({ type: 'LOGOUT' });
 
         window.dispatchEvent(new CustomEvent('auth:logout'));

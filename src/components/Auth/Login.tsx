@@ -27,8 +27,7 @@ const Login: React.FC = () => {
         try {
             await login(email, password);
             router.push('/dashboard');
-        } catch (err) {
-            // Error is handled by context
+        } catch {
         }
     }, [email, password, login, router, clearError]);
 
@@ -76,7 +75,7 @@ const Login: React.FC = () => {
                                     </Button>
 
                                     <Text variant="bodyMd" as="p">
-                                        Don't have an account?{' '}
+                                        Don&apos;t have an account?{' '}
                                         <Link href="/register" style={{ textDecoration: 'none', color: '#008060' }}>
                                             Register here
                                         </Link>
